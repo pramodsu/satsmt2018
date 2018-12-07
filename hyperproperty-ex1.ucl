@@ -1,0 +1,45 @@
+module incr
+{
+  const n    : integer;
+  const incr : integer;
+  var i      : integer;
+  var sum    : integer;
+
+  init {
+    assume (incr >= 0 && n > 0);
+    i   = 0;
+    sum = 0;
+  }
+
+  next {
+    if (i < n) {
+      sum' = sum + incr;
+      i' = i + 1;
+    }
+  }  
+}
+
+module main
+{
+  instance i1 : incr();
+  instance i2 : incr();
+
+  init {
+    assume (i1.n == i2.n);
+    assume (i1.incr < i2.incr);
+  }
+
+  next {
+    next (i1);
+    next (i2);
+  }
+
+  invariant sum_le: (i1.sum <= i2.sum);
+  // TODO: add a relational invariant.
+
+  control {
+    v = induction(1);
+    check;
+    print_results;
+  }
+}

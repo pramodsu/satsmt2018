@@ -1,0 +1,45 @@
+module main
+{
+  // array we will be searching in.
+  const arr : [integer]integer;
+  // size of array.
+  const n   : integer; 
+  // value we will be searching for.
+  const v   : integer;
+
+  // loop index.
+  var i     : integer;
+  // was the value found?
+  var found : boolean; 
+  // has the search finished
+  var done  : boolean;
+
+  init {
+    assume (n >= 0);
+
+    i = 0;
+    found = false;
+    done = n == 0;
+  }
+
+  next {
+    if (i < n) {
+      if (arr[i] == v) {
+        found' = true;
+      }
+      i' = i + 1;
+      done' = (i' == n);
+    }
+  }
+
+  invariant found_value: done ==> 
+    ((found) <==> (exists (j : integer) :: j >= 0 && j < n && arr[j] == v));
+  // TODO: adding invariants.
+
+  control {
+    v = induction;
+    check;
+    print_results;
+    v.print_cex(i, n, arr[i], v, found, done);
+  }
+}

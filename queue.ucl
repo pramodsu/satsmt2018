@@ -1,0 +1,97 @@
+module fifo
+{
+  type op_t = enum { push, pop };
+  type user_t = enum { u1, u2 };
+
+  var data_array    : [integer]integer;
+  var user_array    : [integer]user_t;
+  var tail_ptr      : integer;
+  var head_ptr      : integer;
+
+  input op        : op_t;
+  input user      : user_t;
+  input data_in   : integer;
+  output data_out : integer;
+
+  init {
+    head_ptr    = 0;
+    tail_ptr    = 0;
+  }
+
+  next {
+    if (op == push) {
+      // update data array.
+      data_array' = data_array[tail_ptr -> data_in];
+      // update user array.
+      user_array' = user_array[tail_ptr -> user];
+      // move tail pointer.
+      tail_ptr' = tail_ptr + 1;
+      // zero out data_out.
+      data_out' = 0;
+    } else {
+      if (head_ptr < tail_ptr && user_array[head_ptr] == user) {
+        // update data_out
+        data_out' = data_array[head_ptr];
+        // update head_ptr.
+        head_ptr' = head_ptr + 1;
+      } else {
+        // zero out data_out.
+        data_out' = 0;
+      }
+    }
+  }
+}
+
+
+module main
+{
+  // import types.
+  type op_t = fifo.op_t;
+  type user_t = fifo.user_t;
+
+  // inputs to the main module; set non-deterministically at each step
+  input op : op_t;
+  input user : user_t;
+  input data_in_1 : integer;
+  input data_in_2 : integer;
+
+  var data_out_1  : integer;
+  var data_out_2  : integer;
+
+  // create two instances of the array; they have the same
+  // 'op' and 'user' inputs, but possibly different data_in
+  // inputs.
+  instance arr1 : fifo(op : (op), user : (user), 
+                        data_in : (data_in_1), data_out : (data_out_1));
+  instance arr2 : fifo(op : (op), user : (user), 
+                        data_in : (data_in_2), data_out : (data_out_2));
+
+  init {
+    data_out_1 = 0;
+    data_out_2 = 0;
+  }
+
+  next {
+    // constrain data_in
+    assume (user == u1) ==> (data_in_1 == data_in_2);
+
+    next (arr1);
+    next (arr2);
+  }
+
+  invariant eq_data_out : (user == u1) ==> (data_out_1 == data_out_2);
+
+  control {
+    v = induction;
+    check;
+    print_results;
+    v.print_cex(
+      op, user, data_in_1, data_in_2, data_out_1, data_out_2,
+      arr1.data_array[arr1.head_ptr], arr2.data_array[arr2.head_ptr],
+      arr1.data_array[arr1.tail_ptr], arr2.data_array[arr2.tail_ptr],
+      arr1.user_array[arr1.head_ptr], arr2.user_array[arr2.head_ptr],
+      arr1.user_array[arr1.tail_ptr], arr2.user_array[arr2.tail_ptr],
+      arr1.head_ptr, arr2.head_ptr,
+      arr1.tail_ptr, arr2.tail_ptr);
+  }
+}

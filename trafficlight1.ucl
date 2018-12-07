@@ -1,0 +1,82 @@
+module common
+{
+  type light_t = enum { stop, go };
+}
+
+module light3
+{
+  type light_t = common.light_t;
+
+  var cnt   : integer;
+  output light : light_t;
+
+  define count_to_light(c : integer) : light_t =
+    if (c == 0 || c == 1) then stop else go;
+
+  init {
+    cnt = 0;
+    light = count_to_light(cnt);
+  }
+
+  next {
+    cnt' = if (cnt == 2) then 0 else cnt + 1;
+    light' = count_to_light(cnt');
+  }
+}
+
+module light2
+{
+  type light_t = common.light_t;
+
+  input  wait   : boolean;
+  output light  : light_t;
+
+  init {
+    light = stop;
+  }
+  next {
+    if (light == go) {
+      light' = stop;
+    } else {
+      light' = if (wait) then stop else go;
+    }
+  }
+}
+
+module main
+{
+  type light_t = common.light_t;
+
+  var l3, l2 : light_t;
+  var wait2 : boolean;
+
+  instance i1 : light3(light : (l3));
+  instance i2 : light2(wait : (wait2), light : (l2));
+
+  init {
+    wait2 = true;
+  }
+  next {
+    wait2' = (i1.cnt == 2);
+    next (i1);
+    next (i2);
+  }
+
+  invariant lights_equal: l2 == l3;
+  // TODO: add strengthening invariants to prove the property.
+
+  control {
+    // Comment out the following four lines if you want
+    // to try look for bugs using BMC.
+    /*
+    v = unroll(10);
+    check;
+    print_results;
+    v.print_cex(i1.cnt, i1.light, i2.light, wait2);
+    */
+    v = induction(1);
+    check;
+    print_results;
+    v.print_cex(i1.cnt, i1.light, i2.light, wait2);
+  }
+}
